@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:17'
+    environment:
+      POSTGRES_DB: easytennis
+      POSTGRES_USER: easytennis
+      POSTGRES_PASSWORD: easytennis
+    ports:
+      - '5432:5432'
