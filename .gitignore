@@ -1,0 +1,10 @@
+# Claude Code internal data
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files (each subproject has its own .gitignore, this is a catch-all)
+.env
+.env.*
