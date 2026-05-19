@@ -102,7 +102,11 @@ EasyTennis tracks tennis game days in court rental arenas. Users register game d
 
 ## Development Protocol (MANDATORY)
 
-**Before every change**, divide the change in small tasks, and write a log entry in the commit message / PR description:
+**Before every change**
+
+1. ALWAYS read the DECISIONS.md file at the root folder before starting any changes. If there are risks or unresolved dependencies related to other decisions, prompt the user for guidance.
+2. divide the change in small tasks
+3. write a log entry in the commit message / PR description:
 
 ```
 [LOG - <ISO 8601 timestamp>]
@@ -117,12 +121,15 @@ Approach: <how it will be implemented>
 3. Lint the code (Checkstyle / SpotBugs if configured)
 4. Check for code smells: God classes, long methods, feature envy, magic numbers
 5. Verify no secrets or environment variables are hardcoded — all must live in `.env` files
-6. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
-7. Verify no API URLs, tokens, or secrets are hardcoded — use `.env` files
+6. Scan the new code for any possible security breaches
+7. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
+8. Verify no API URLs, tokens, secrets, or docker compose variables are hardcoded — use `.env` files
 
 **After the change review**
 Write a summary of our progress, key decisions made, and next steps into a file called DECISIONS.md, with the time stamp of the change.
 
+**Definition of Done**
+A pull request can ONLY be submitted after EVERY step of the Development Protocol has been completed, the backend and frontend run sucessfully without any errors, any problems and risks have been resolved, and every detail of the change has been documented in the DECISIONS.md file.
 
 ---
 
@@ -132,6 +139,7 @@ Write a summary of our progress, key decisions made, and next steps into a file 
 - `.env.production` — production values (managed via secrets manager / CI)
 - Reference in `application.properties` as `${ENV_VAR_NAME}`
 - Examples: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `JWT_EXPIRY_MS`
+- DO NOT hard code values in docker-compose.yaml files. Always use environment variables.
 
 ---
 

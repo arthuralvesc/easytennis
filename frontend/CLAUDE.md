@@ -148,7 +148,7 @@ Players can be added and removed dynamically within the form.
 
 **Before every change**
 
-1. read the DECISIONS.md file to make sure the current change plan fits with the history of the workflow. If there are risks or unresolved dependencies, prompt the user for guidance.
+1. ALWAYS read the DECISIONS.md file at the root folder before starting any changes. If there are risks or unresolved dependencies related to other decisions, prompt the user for guidance.
 2. divide the change in small tasks
 3. write a log entry in the commit message / PR description:
 
@@ -163,6 +163,7 @@ Approach: <how it will be implemented>
 1. Run `npm run build` — catches TypeScript errors
 2. Run `eslint .` — lint
 3. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
+4. Scan the new code for any possible security breaches
 5. Verify no API URLs, tokens, or secrets are hardcoded — use `.env` files
 
 ---
@@ -170,12 +171,16 @@ Approach: <how it will be implemented>
 **After the change review**
 Write a summary of our progress, key decisions made, and next steps into a file called DECISIONS.md, with the time stamp of the change.
 
+**Definition of Done**
+A pull request can ONLY be submitted after EVERY step of the Development Protocol has been completed, the backend and frontend run sucessfully without any errors, any problems and risks have been resolved, and every detail of the change has been documented in the DECISIONS.md file.
+
 ## Environment Variables
 
 - `.env.local` — local development (not committed to git; Next.js loads automatically)
 - `.env.production` — production values
 - Public vars (exposed to browser) must use the `NEXT_PUBLIC_` prefix
 - Key variable: `NEXT_PUBLIC_API_BASE_URL` — backend API base URL
+- DO NOT hard code values in docker-compose.yaml files. Always use environment variables.
 
 ---
 
