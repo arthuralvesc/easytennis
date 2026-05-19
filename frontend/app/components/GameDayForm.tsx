@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Trash2, UserPlus } from "lucide-react"
+import { Spinner } from "@/app/components/Spinner"
 
 const playerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -189,11 +190,11 @@ export default function GameDayForm({
             onClick={onDelete}
             disabled={isDeleting || form.formState.isSubmitting}
           >
-            {isDeleting ? "Deleting…" : "Delete"}
+            {isDeleting ? <><Spinner className="mr-1" />Deleting…</> : "Delete"}
           </Button>
         )}
         <Button type="submit" disabled={form.formState.isSubmitting || isDeleting}>
-          {form.formState.isSubmitting ? "Saving…" : submitLabel}
+          {form.formState.isSubmitting ? <><Spinner className="mr-1" />Saving…</> : submitLabel}
         </Button>
       </div>
     </form>

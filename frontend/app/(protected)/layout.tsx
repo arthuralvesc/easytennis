@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/context/AuthContext"
 import Header from "@/app/components/Header"
+import { PageSpinner } from "@/app/components/Spinner"
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, token } = useAuth()
@@ -16,7 +17,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }, [isAuthenticated, token, router])
 
   if (!isAuthenticated) {
-    return null
+    return <PageSpinner />
   }
 
   return (
