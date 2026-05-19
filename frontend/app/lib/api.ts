@@ -25,8 +25,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw new ApiError(body.error ?? res.statusText, res.status)
   }
-  if (res.status === 204) return undefined as T
-  return res.json()
+  const text = await res.text()
+  if (!text) return undefined as T
+  return JSON.parse(text) as T
 }
 
 export interface LoginRequest {
@@ -78,6 +79,12 @@ export const api = {
       request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
     register: (data: { name: string; email: string; password: string }) =>
       request<void>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
+    forgotPassword: (email: string) =>
+      request<void>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+    verifyResetCode: (email: string, code: string) =>
+      request<void>("/auth/verify-reset-code", { method: "POST", body: JSON.stringify({ email, code }) }),
+    resetPassword: (email: string, code: string, newPassword: string) =>
+      request<void>("/auth/reset-password", { method: "POST", body: JSON.stringify({ email, code, newPassword }) }),
   },
   gameDays: {
     list: () => request<GameDayResponse[]>("/game-days"),

@@ -75,3 +75,69 @@ Two exports from `app/components/Spinner.tsx`:
 
 - Commit and push `feature/loading-spinners` branch
 - Open PR to `master`
+
+---
+
+## [2026-05-19] feat(auth): forgot-password flow (email OTP, 3-step UI)
+
+### Log
+
+```
+[LOG - 2026-05-19T15:45:00Z]
+Change: Add forgot-password feature — backend reset-code endpoints + Gmail SMTP + frontend 3-step UI
+Reason: Users have no recovery path when they forget their password
+Approach: SecureRandom 6-digit OTP stored in password_reset_codes table (15-min TTL); Gmail App Password via JavaMailSender; frontend multi-mode form (forgot → verify → reset)
+```
+
+### Key Decisions
+
+| Decision | Rationale |
+|---|---|
+| `EmailService` interface + `EmailServiceImpl` | Open/Closed principle — tests mock the interface; the Gmail implementation can be swapped without touching `AuthService` |
+| `PasswordResetCode` as a JPA entity (not in-memory) | Survives pod restarts; `ddl-auto=update` auto-creates the table — no manual migration needed for this MVP |
+| `deleteByEmail` before saving new code | Prevents multiple valid codes per email; `@Transactional` on `sendResetCode` keeps delete+save atomic |
+| Gmail credentials in `.env.development` and `.env.production` only | User requirement: "DO NOT HARDCODE THEM, MAKE THEM ENVIRONMENT VARIABLES"; `${MAIL_USER}` and `${MAIL_PASSWORD}` in `application.properties` |
+| Multi-mode form (`login \| register \| forgot \| verify \| reset`) | All steps share one card; no new routes needed; `resetEmail` / `resetCode` state threads context between steps |
+| `inputMode="numeric"` on OTP input | Triggers numeric keyboard on mobile without type="number" (which strips leading zeros) |
+| `confirmPassword` field in `resetSchema` via `.refine()` | Client-side guard before the API call; avoids a round-trip for a trivially detectable mismatch |
+
+### Changes Applied
+
+| File | Change |
+|---|---|
+| `api/pom.xml` | Added `spring-boot-starter-mail` dependency |
+| `api/src/main/resources/application.properties` | Added Gmail SMTP config using `${MAIL_USER}` / `${MAIL_PASSWORD}` |
+| `api/.env.development` | Added `MAIL_USER` and `MAIL_PASSWORD` |
+| `api/.env.production` | Created with `MAIL_USER` and `MAIL_PASSWORD` (JWT_SECRET placeholder) |
+| `api/.../entity/PasswordResetCode.java` | New JPA entity — email, code, expiresAt |
+| `api/.../repository/PasswordResetCodeRepository.java` | New Spring Data repo — findByEmailAndCode, deleteByEmail |
+| `api/.../dto/auth/ForgotPasswordRequest.java` | New record — email |
+| `api/.../dto/auth/VerifyResetCodeRequest.java` | New record — email, 6-digit code |
+| `api/.../dto/auth/ResetPasswordRequest.java` | New record — email, code, newPassword |
+| `api/.../service/EmailService.java` | New interface — sendPasswordResetCode |
+| `api/.../service/EmailServiceImpl.java` | Gmail implementation via JavaMailSender |
+| `api/.../service/AuthService.java` | Added sendResetCode, verifyResetCode, resetPassword methods |
+| `api/.../controller/AuthController.java` | Added /forgot-password, /verify-reset-code, /reset-password endpoints |
+| `api/.../test/.../EmailServiceTest.java` | 3 unit tests — recipient, body contains code, non-blank subject |
+| `api/.../test/.../AuthServicePasswordResetTest.java` | 8 unit tests — all happy/sad paths for all 3 service methods |
+| `frontend/app/lib/api.ts` | Added forgotPassword, verifyResetCode, resetPassword to api.auth |
+| `frontend/app/(auth)/login/page.tsx` | Added forgot/verify/reset modes, new schemas, form instances, handlers |
+
+### Test Results
+
+- Backend: 11/11 tests pass (`EmailServiceTest` 3, `AuthServicePasswordResetTest` 8)
+- Frontend: `npm run build` compiled clean, TypeScript clean
+- ESLint: no warnings or errors
+
+### Security Review
+
+- Credentials never appear in source code — only in `.env.*` files excluded from git
+- `SecureRandom` (cryptographically secure) used for code generation, not `Math.random()`
+- OTP has a 15-minute expiry enforced server-side on both verify and reset endpoints
+- Old codes deleted before issuing a new one (prevents code accumulation attacks)
+- No email enumeration hardening (throws on unknown email) — acceptable for MVP
+
+### Next Steps
+
+- Commit and push `feature/loading-spinners` branch (includes this change)
+- Open draft PR to `master`
