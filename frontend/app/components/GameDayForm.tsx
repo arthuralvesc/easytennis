@@ -1,6 +1,6 @@
 "use client"
 
-import { Resolver, useFieldArray, useForm } from "react-hook-form"
+import { Controller, Resolver, useFieldArray, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { GameDayRequest } from "@/app/lib/api"
@@ -95,7 +95,27 @@ export default function GameDayForm({
 
         <div className="col-span-2 space-y-1">
           <Label htmlFor="price">Total Price (R$)</Label>
-          <Input id="price" type="number" min={0} step="0.01" {...form.register("totalPrice")} />
+          <Controller
+            name="totalPrice"
+            control={form.control}
+            render={({ field }) => {
+              const cents = Math.round(field.value * 100)
+              const display = `${Math.floor(cents / 100)},${String(cents % 100).padStart(2, "0")}`
+              return (
+                <Input
+                  id="price"
+                  inputMode="numeric"
+                  placeholder="0,00"
+                  value={display}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "")
+                    const newCents = parseInt(digits || "0", 10)
+                    field.onChange(newCents / 100)
+                  }}
+                />
+              )
+            }}
+          />
           {form.formState.errors.totalPrice && (
             <p className="text-xs text-destructive">{form.formState.errors.totalPrice.message}</p>
           )}

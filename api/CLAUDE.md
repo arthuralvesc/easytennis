@@ -151,6 +151,18 @@ Write a summary of our progress, key decisions made, and next steps into a file 
 
 ---
 
+## Pull Request Guidelines
+
+  - **Command:** Use `gh pr create --draft` to initiate PRs so they can be reviewed before going live.
+  - **Title Format:** Use Conventional Commits (e.g., `feat(auth): add login flow`).
+  - **Description Template:** Always include:
+    - **Summary:** A brief overview of the changes.
+    - **Testing:** List the specific commands run to verify the fix (e.g., `npm test`).
+    - **Issue Reference:** Link to the relevant issue (e.g., `Closes #123`).
+  - **Review:** Before finalizing, use `gh pr diff` to double-check the changes.
+
+  ---
+
 ## Running Locally
 
 ```bash

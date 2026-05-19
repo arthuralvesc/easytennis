@@ -5,6 +5,7 @@ import { jwtDecode } from "jwt-decode"
 
 interface JwtPayload {
   sub: string
+  name?: string
   exp: number
 }
 
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem("token")
       if (!stored) return null
       const payload = jwtDecode<JwtPayload>(stored)
-      if (payload.exp * 1000 > Date.now()) return payload.sub
+      if (payload.exp * 1000 > Date.now()) return payload.name ?? payload.sub
     } catch {}
     return null
   })
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", newToken)
     const payload = jwtDecode<JwtPayload>(newToken)
     setToken(newToken)
-    setUsername(payload.sub)
+    setUsername(payload.name ?? payload.sub)
   }
 
   function logout() {

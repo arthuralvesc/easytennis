@@ -6,19 +6,19 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useAuth } from "@/app/context/AuthContext"
-import { api } from "@/app/lib/api"
+import { api, ApiError } from "@/app/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 })
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
@@ -56,7 +56,11 @@ export default function LoginPage() {
       setMode("login")
       registerForm.reset()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Registration failed")
+      if (e instanceof ApiError && e.statusCode === 409) {
+        setError("This email is already registered.")
+      } else {
+        setError(e instanceof Error ? e.message : "Registration failed")
+      }
     }
   }
 
@@ -88,10 +92,10 @@ export default function LoginPage() {
           {mode === "login" ? (
             <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
               <div className="space-y-1">
-                <Label htmlFor="login-username">Username</Label>
-                <Input id="login-username" {...loginForm.register("username")} />
-                {loginForm.formState.errors.username && (
-                  <p className="text-xs text-destructive">{loginForm.formState.errors.username.message}</p>
+                <Label htmlFor="login-email">Email</Label>
+                <Input id="login-email" type="email" {...loginForm.register("email")} />
+                {loginForm.formState.errors.email && (
+                  <p className="text-xs text-destructive">{loginForm.formState.errors.email.message}</p>
                 )}
               </div>
               <div className="space-y-1">
@@ -108,10 +112,10 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
               <div className="space-y-1">
-                <Label htmlFor="reg-username">Username</Label>
-                <Input id="reg-username" {...registerForm.register("username")} />
-                {registerForm.formState.errors.username && (
-                  <p className="text-xs text-destructive">{registerForm.formState.errors.username.message}</p>
+                <Label htmlFor="reg-name">Name</Label>
+                <Input id="reg-name" {...registerForm.register("name")} />
+                {registerForm.formState.errors.name && (
+                  <p className="text-xs text-destructive">{registerForm.formState.errors.name.message}</p>
                 )}
               </div>
               <div className="space-y-1">

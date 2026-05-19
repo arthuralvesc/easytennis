@@ -5,6 +5,13 @@ function getToken(): string | null {
   return localStorage.getItem("token")
 }
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly statusCode: number) {
+    super(message)
+    this.name = "ApiError"
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -16,14 +23,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(body.error ?? res.statusText)
+    throw new ApiError(body.error ?? res.statusText, res.status)
   }
   if (res.status === 204) return undefined as T
   return res.json()
 }
 
 export interface LoginRequest {
-  username: string
+  email: string
   password: string
 }
 
@@ -69,7 +76,7 @@ export const api = {
   auth: {
     login: (data: LoginRequest) =>
       request<LoginResponse>("/auth/login", { method: "POST", body: JSON.stringify(data) }),
-    register: (data: { username: string; email: string; password: string }) =>
+    register: (data: { name: string; email: string; password: string }) =>
       request<void>("/auth/register", { method: "POST", body: JSON.stringify(data) }),
   },
   gameDays: {
