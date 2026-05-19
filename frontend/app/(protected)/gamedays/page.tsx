@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Plus } from "lucide-react"
+import { PageSpinner } from "@/app/components/Spinner"
 
 export default function GameDaysPage() {
   const [gameDays, setGameDays] = useState<GameDayResponse[]>([])
@@ -28,7 +29,7 @@ export default function GameDaysPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
+  if (loading) return <PageSpinner />
   if (error) return <p className="text-destructive">{error}</p>
 
   return (

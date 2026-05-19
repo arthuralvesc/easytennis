@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PageSpinner, Spinner } from "@/app/components/Spinner"
 
 export default function CostSplitPage() {
   const [gameDays, setGameDays] = useState<GameDayResponse[]>([])
@@ -67,7 +68,7 @@ export default function CostSplitPage() {
 
   const amountMap = new Map(result?.playerAmounts.map((p) => [p.email, p.amountToPay]) ?? [])
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
+  if (loading) return <PageSpinner />
   if (error && !selectedId) return <p className="text-destructive">{error}</p>
 
   return (
@@ -126,7 +127,7 @@ export default function CostSplitPage() {
             disabled={calculating || checkedEmails.size === 0}
             className="mt-2"
           >
-            {calculating ? "Calculating…" : "Calculate Split"}
+            {calculating ? <><Spinner className="mr-1" />Calculating…</> : "Calculate Split"}
           </Button>
         </div>
       )}

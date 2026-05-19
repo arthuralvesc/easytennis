@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api, GameDayRequest, GameDayResponse } from "@/app/lib/api"
 import GameDayForm, { GameDayFormValues } from "@/app/components/GameDayForm"
+import { PageSpinner } from "@/app/components/Spinner"
 
 export default function EditGameDayPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -38,7 +39,7 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>
+  if (loading) return <PageSpinner />
   if (error) return <p className="text-destructive">{error}</p>
   if (!gameDay) return null
 

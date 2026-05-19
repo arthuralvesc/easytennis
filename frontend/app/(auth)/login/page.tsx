@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Spinner } from "@/app/components/Spinner"
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -106,7 +107,7 @@ export default function LoginPage() {
                 )}
               </div>
               <Button type="submit" className="w-full" disabled={loginForm.formState.isSubmitting}>
-                {loginForm.formState.isSubmitting ? "Logging in…" : "Login"}
+                {loginForm.formState.isSubmitting ? <><Spinner className="mr-1" />Logging in…</> : "Login"}
               </Button>
             </form>
           ) : (
@@ -133,7 +134,7 @@ export default function LoginPage() {
                 )}
               </div>
               <Button type="submit" className="w-full" disabled={registerForm.formState.isSubmitting}>
-                {registerForm.formState.isSubmitting ? "Creating account…" : "Register"}
+                {registerForm.formState.isSubmitting ? <><Spinner className="mr-1" />Creating account…</> : "Register"}
               </Button>
             </form>
           )}
