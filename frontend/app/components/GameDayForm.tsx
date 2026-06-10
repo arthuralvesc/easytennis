@@ -32,8 +32,8 @@ export type GameDayFormValues = z.infer<typeof gameDaySchema>
 interface GameDayFormProps {
   defaultValues?: Partial<GameDayFormValues>
   availablePlayers: PlayerProfileResponse[]
-  initialSelectedEmails?: string[]
-  orphanPlayers?: Array<{ name: string; email: string }>
+  initialSelectedProfileIds?: number[]
+  orphanPlayers?: Array<{ name: string; profileId: number | null }>
   onSubmit: (data: GameDayRequest) => Promise<void>
   submitLabel: string
   isDeleting?: boolean
@@ -43,7 +43,7 @@ interface GameDayFormProps {
 export default function GameDayForm({
   defaultValues,
   availablePlayers: initialAvailablePlayers,
-  initialSelectedEmails = [],
+  initialSelectedProfileIds = [],
   orphanPlayers = [],
   onSubmit,
   submitLabel,
@@ -62,23 +62,22 @@ export default function GameDayForm({
   })
 
   const [availablePlayers, setAvailablePlayers] = useState<PlayerProfileResponse[]>(initialAvailablePlayers)
-  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(
-    new Set(initialSelectedEmails)
+  const [selectedProfileIds, setSelectedProfileIds] = useState<Set<number>>(
+    new Set(initialSelectedProfileIds)
   )
   const [playersError, setPlayersError] = useState<string | null>(null)
 
   // Add New Player dialog
   const [showAdd, setShowAdd] = useState(false)
   const [addName, setAddName] = useState("")
-  const [addEmail, setAddEmail] = useState("")
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
-  function toggleEmail(email: string) {
-    setSelectedEmails((prev) => {
+  function toggleProfile(profileId: number) {
+    setSelectedProfileIds((prev) => {
       const next = new Set(prev)
-      if (next.has(email)) next.delete(email)
-      else next.add(email)
+      if (next.has(profileId)) next.delete(profileId)
+      else next.add(profileId)
       return next
     })
   }
@@ -87,14 +86,13 @@ export default function GameDayForm({
     setAddSaving(true)
     setAddError(null)
     try {
-      const created = await api.players.create({ name: addName, email: addEmail })
+      const created = await api.players.create({ name: addName })
       setAvailablePlayers((prev) =>
         [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
       )
-      setSelectedEmails((prev) => new Set([...prev, created.email]))
+      setSelectedProfileIds((prev) => new Set([...prev, created.id]))
       setShowAdd(false)
       setAddName("")
-      setAddEmail("")
     } catch (e: unknown) {
       setAddError(e instanceof Error ? e.message : "Failed to create player")
     } finally {
@@ -103,9 +101,9 @@ export default function GameDayForm({
   }
 
   async function handleSubmit(values: GameDayFormValues) {
-    const managedSelected = availablePlayers.filter((p) => selectedEmails.has(p.email))
+    const managedSelected = availablePlayers.filter((p) => selectedProfileIds.has(p.id))
     const allPlayers = [
-      ...managedSelected.map((p) => ({ name: p.name, email: p.email })),
+      ...managedSelected.map((p) => ({ name: p.name, profileId: p.id })),
       ...orphanPlayers,
     ]
     if (allPlayers.length === 0) {
@@ -186,7 +184,7 @@ export default function GameDayForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => { setAddError(null); setAddName(""); setAddEmail(""); setShowAdd(true) }}
+            onClick={() => { setAddError(null); setAddName(""); setShowAdd(true) }}
           >
             <UserPlus className="h-4 w-4 mr-1" />
             New Player
@@ -210,26 +208,24 @@ export default function GameDayForm({
                   className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50"
                 >
                   <Checkbox
-                    checked={selectedEmails.has(player.email)}
-                    onCheckedChange={() => toggleEmail(player.email)}
+                    checked={selectedProfileIds.has(player.id)}
+                    onCheckedChange={() => toggleProfile(player.id)}
                   />
                   <div>
                     <p className="text-sm font-medium">{player.name}</p>
-                    <p className="text-xs text-muted-foreground">{player.email}</p>
                   </div>
                 </label>
               ))}
-              {orphanPlayers.map((player) => (
+              {orphanPlayers.map((player, index) => (
                 <label
-                  key={player.email}
+                  key={`orphan-${index}`}
                   className="flex items-center gap-3 px-4 py-3 opacity-60"
                 >
                   <Checkbox checked disabled />
                   <div>
-                    <p className="text-sm font-medium">{player.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {player.email}{" "}
-                      <span className="italic">— not in list</span>
+                    <p className="text-sm font-medium">
+                      {player.name}{" "}
+                      <span className="text-xs text-muted-foreground italic">— not in list</span>
                     </p>
                   </div>
                 </label>
@@ -274,16 +270,6 @@ export default function GameDayForm({
                 placeholder="Player name"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="add-email">Email</Label>
-              <Input
-                id="add-email"
-                type="email"
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                placeholder="player@example.com"
-              />
-            </div>
             {addError && <p className="text-sm text-destructive">{addError}</p>}
           </div>
           <DialogFooter>
@@ -292,7 +278,7 @@ export default function GameDayForm({
             </Button>
             <Button
               onClick={handleAddPlayer}
-              disabled={addSaving || !addName.trim() || !addEmail.trim()}
+              disabled={addSaving || !addName.trim()}
             >
               {addSaving && <Spinner className="mr-2" />}
               Add &amp; Select

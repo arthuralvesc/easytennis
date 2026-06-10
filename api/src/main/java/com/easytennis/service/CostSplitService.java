@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -30,20 +29,22 @@ public class CostSplitService {
         GameDay gameDay = gameDayRepository.findByIdAndUser(request.gameDayId(), authenticatedUser)
                 .orElseThrow(() -> new EntityNotFoundException("Game day not found: " + request.gameDayId()));
 
-        Set<String> payingEmails = Set.copyOf(request.payingPlayerEmails());
-        List<Player> payingPlayers = gameDay.getPlayers().stream()
-                .filter(player -> payingEmails.contains(player.getEmail()))
+        List<Player> players = gameDay.getPlayers();
+        List<Integer> payingIndexes = request.payingPlayerIndexes().stream()
+                .distinct()
                 .toList();
 
-        if (payingPlayers.isEmpty()) {
-            throw new IllegalArgumentException("No matching players found for the provided emails");
+        boolean anyOutOfRange = payingIndexes.stream()
+                .anyMatch(index -> index == null || index < 0 || index >= players.size());
+        if (anyOutOfRange) {
+            throw new IllegalArgumentException("Invalid player selection for this game day");
         }
 
         BigDecimal amountPerPlayer = gameDay.getTotalPrice()
-                .divide(BigDecimal.valueOf(payingPlayers.size()), 2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(payingIndexes.size()), 2, RoundingMode.HALF_UP);
 
-        List<PlayerSplitDto> playerAmounts = payingPlayers.stream()
-                .map(player -> new PlayerSplitDto(player.getName(), player.getEmail(), amountPerPlayer))
+        List<PlayerSplitDto> playerAmounts = payingIndexes.stream()
+                .map(index -> new PlayerSplitDto(index, players.get(index).getName(), amountPerPlayer))
                 .toList();
 
         return new CostSplitResponse(gameDay.getId(), playerAmounts);

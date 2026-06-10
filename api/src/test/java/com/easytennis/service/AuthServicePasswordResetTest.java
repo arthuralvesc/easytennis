@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -58,12 +59,13 @@ class AuthServicePasswordResetTest {
     // --- sendResetCode ---
 
     @Test
-    void sendResetCode_throwsWhenEmailNotFound() {
+    void sendResetCode_silentlyNoOpsWhenEmailNotFound() {
+        // Anti–user-enumeration: an unknown email must NOT reveal itself via an error.
+        // sendResetCode silently does nothing — no throw, no code persisted, no email sent.
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.sendResetCode(new ForgotPasswordRequest("unknown@example.com")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No account found");
+        assertThatCode(() -> authService.sendResetCode(new ForgotPasswordRequest("unknown@example.com")))
+                .doesNotThrowAnyException();
 
         verify(emailService, never()).sendPasswordResetCode(anyString(), anyString());
     }

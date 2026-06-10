@@ -21,7 +21,7 @@ export default function CostSplitPage() {
   const router = useRouter()
   const [gameDays, setGameDays] = useState<GameDayResponse[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [checkedEmails, setCheckedEmails] = useState<Set<string>>(new Set())
+  const [checkedIndexes, setCheckedIndexes] = useState<Set<number>>(new Set())
   const [result, setResult] = useState<CostSplitResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [calculating, setCalculating] = useState(false)
@@ -41,26 +41,26 @@ export default function CostSplitPage() {
     const id = Number(value)
     setSelectedId(id)
     const gd = gameDays.find((g) => g.id === id)
-    setCheckedEmails(new Set(gd?.players.map((p) => p.email) ?? []))
+    setCheckedIndexes(new Set(gd?.players.map((_, index) => index) ?? []))
     setResult(null)
   }
 
-  function togglePlayer(email: string) {
-    setCheckedEmails((prev) => {
+  function togglePlayer(index: number) {
+    setCheckedIndexes((prev) => {
       const next = new Set(prev)
-      if (next.has(email)) next.delete(email)
-      else next.add(email)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
       return next
     })
     setResult(null)
   }
 
   async function handleCalculate() {
-    if (!selectedId || checkedEmails.size === 0) return
+    if (!selectedId || checkedIndexes.size === 0) return
     setCalculating(true)
     setError(null)
     try {
-      const res = await api.costSplit.calculate(selectedId, Array.from(checkedEmails))
+      const res = await api.costSplit.calculate(selectedId, Array.from(checkedIndexes))
       setResult(res)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to calculate")
@@ -69,7 +69,7 @@ export default function CostSplitPage() {
     }
   }
 
-  const amountMap = new Map(result?.playerAmounts.map((p) => [p.email, p.amountToPay]) ?? [])
+  const amountMap = new Map(result?.playerAmounts.map((p) => [p.playerIndex, p.amountToPay]) ?? [])
 
   if (loading) return <PageSpinner />
   if (error && !selectedId) return <p className="text-destructive">{error}</p>
@@ -104,21 +104,21 @@ export default function CostSplitPage() {
       {selectedGameDay && (
         <div className="space-y-3">
           <Label>Players paying</Label>
-          {selectedGameDay.players.map((player) => {
-            const amount = amountMap.get(player.email)
+          {selectedGameDay.players.map((player, index) => {
+            const amount = amountMap.get(index)
+            const checkboxId = `player-${index}`
             return (
-              <div key={player.email} className="flex items-center gap-3">
+              <div key={index} className="flex items-center gap-3">
                 <Checkbox
-                  id={player.email}
-                  checked={checkedEmails.has(player.email)}
-                  onCheckedChange={() => togglePlayer(player.email)}
+                  id={checkboxId}
+                  checked={checkedIndexes.has(index)}
+                  onCheckedChange={() => togglePlayer(index)}
                 />
                 <label
-                  htmlFor={player.email}
+                  htmlFor={checkboxId}
                   className="flex-1 text-sm cursor-pointer select-none"
                 >
-                  {player.name}{" "}
-                  <span className="text-muted-foreground text-xs">({player.email})</span>
+                  {player.name}
                 </label>
                 {amount !== undefined && (
                   <span className="text-sm font-medium text-primary">
@@ -133,7 +133,7 @@ export default function CostSplitPage() {
 
           <Button
             onClick={handleCalculate}
-            disabled={calculating || checkedEmails.size === 0}
+            disabled={calculating || checkedIndexes.size === 0}
             className="mt-2"
           >
             {calculating ? <><Spinner className="mr-1" />Calculating…</> : "Calculate Split"}
@@ -148,7 +148,7 @@ export default function CostSplitPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {result.playerAmounts.map((p) => (
-              <div key={p.email} className="flex justify-between text-sm">
+              <div key={p.playerIndex} className="flex justify-between text-sm">
                 <span>{p.name}</span>
                 <span className="font-semibold">R$ {p.amountToPay.toFixed(2)}</span>
               </div>
