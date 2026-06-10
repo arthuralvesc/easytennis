@@ -12,6 +12,4 @@ public interface PlayerProfileRepository extends JpaRepository<PlayerProfile, Lo
     List<PlayerProfile> findAllByUserOrderByNameAsc(User user);
 
     Optional<PlayerProfile> findByIdAndUser(Long id, User user);
-
-    boolean existsByUserAndEmail(User user, String email);
 }

@@ -9,7 +9,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,10 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(
-        name = "player_profiles",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "email"})
-)
+@Table(name = "player_profiles")
 @Getter
 @Setter
 @Builder
@@ -34,9 +30,6 @@ public class PlayerProfile {
 
     @Column(nullable = false)
     private String name;
-
-    @Column(nullable = false)
-    private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

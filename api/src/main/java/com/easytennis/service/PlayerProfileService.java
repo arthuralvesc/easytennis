@@ -31,12 +31,8 @@ public class PlayerProfileService {
     @Transactional
     public PlayerProfileResponse create(PlayerProfileRequest request) {
         User user = resolveAuthenticatedUser();
-        if (playerProfileRepository.existsByUserAndEmail(user, request.email())) {
-            throw new IllegalArgumentException("A player with this email already exists in your list");
-        }
         PlayerProfile profile = PlayerProfile.builder()
                 .name(request.name())
-                .email(request.email())
                 .user(user)
                 .build();
         return toResponse(playerProfileRepository.save(profile));
@@ -46,12 +42,7 @@ public class PlayerProfileService {
     public PlayerProfileResponse update(Long id, PlayerProfileRequest request) {
         User user = resolveAuthenticatedUser();
         PlayerProfile profile = findOwned(id, user);
-        boolean emailChanged = !profile.getEmail().equalsIgnoreCase(request.email());
-        if (emailChanged && playerProfileRepository.existsByUserAndEmail(user, request.email())) {
-            throw new IllegalArgumentException("A player with this email already exists in your list");
-        }
         profile.setName(request.name());
-        profile.setEmail(request.email());
         return toResponse(playerProfileRepository.save(profile));
     }
 
@@ -72,6 +63,6 @@ public class PlayerProfileService {
     }
 
     private PlayerProfileResponse toResponse(PlayerProfile profile) {
-        return new PlayerProfileResponse(profile.getId(), profile.getName(), profile.getEmail());
+        return new PlayerProfileResponse(profile.getId(), profile.getName());
     }
 }

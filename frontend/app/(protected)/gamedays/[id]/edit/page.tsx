@@ -46,9 +46,11 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
   if (error) return <p className="text-destructive">{error}</p>
   if (!gameDay) return null
 
-  const initialSelectedEmails = gameDay.players.map((p) => p.email)
+  const initialSelectedProfileIds = gameDay.players
+    .map((p) => p.profileId)
+    .filter((id): id is number => id != null)
   const orphanPlayers = gameDay.players.filter(
-    (p) => !availablePlayers.some((ap) => ap.email === p.email)
+    (p) => p.profileId == null || !availablePlayers.some((ap) => ap.id === p.profileId)
   )
 
   const defaultValues: Partial<GameDayFormValues> = {
@@ -64,7 +66,7 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
       <GameDayForm
         defaultValues={defaultValues}
         availablePlayers={availablePlayers}
-        initialSelectedEmails={initialSelectedEmails}
+        initialSelectedProfileIds={initialSelectedProfileIds}
         orphanPlayers={orphanPlayers}
         submitLabel="Save Changes"
         onSubmit={handleUpdate}

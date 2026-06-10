@@ -87,13 +87,13 @@ public class GameDayService {
 
     private List<Player> mapToPlayerEntities(List<PlayerDto> playerDtos) {
         return playerDtos.stream()
-                .map(dto -> Player.builder().name(dto.name()).email(dto.email()).build())
+                .map(dto -> Player.builder().name(dto.name()).profileId(dto.profileId()).build())
                 .toList();
     }
 
     private GameDayResponse toResponse(GameDay gameDay) {
         List<PlayerDto> playerDtos = gameDay.getPlayers().stream()
-                .map(player -> new PlayerDto(player.getName(), player.getEmail()))
+                .map(player -> new PlayerDto(player.getName(), player.getProfileId()))
                 .toList();
 
         return new GameDayResponse(

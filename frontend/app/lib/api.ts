@@ -41,7 +41,7 @@ export interface LoginResponse {
 
 export interface PlayerDto {
   name: string
-  email: string
+  profileId: number | null
 }
 
 export interface GameDayResponse {
@@ -63,8 +63,8 @@ export interface GameDayRequest {
 }
 
 export interface PlayerSplitDto {
+  playerIndex: number
   name: string
-  email: string
   amountToPay: number
 }
 
@@ -76,12 +76,10 @@ export interface CostSplitResponse {
 export interface PlayerProfileResponse {
   id: number
   name: string
-  email: string
 }
 
 export interface PlayerProfileRequest {
   name: string
-  email: string
 }
 
 export const api = {
@@ -107,10 +105,10 @@ export const api = {
     delete: (id: number) => request<void>(`/game-days/${id}`, { method: "DELETE" }),
   },
   costSplit: {
-    calculate: (gameDayId: number, payingPlayerEmails: string[]) =>
+    calculate: (gameDayId: number, payingPlayerIndexes: number[]) =>
       request<CostSplitResponse>("/cost-split", {
         method: "POST",
-        body: JSON.stringify({ gameDayId, payingPlayerEmails }),
+        body: JSON.stringify({ gameDayId, payingPlayerIndexes }),
       }),
   },
   players: {
