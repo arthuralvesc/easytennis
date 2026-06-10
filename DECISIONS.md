@@ -355,6 +355,20 @@ ALTER TABLE game_day_players DROP COLUMN IF EXISTS email;
 - Frontend `npm run build`: ✅ TypeScript clean
 - `eslint .`: ✅ no warnings or errors
 
+### Re-verification [2026-06-10] — every protocol step re-executed with captured output (no assumptions)
+
+- Backend `mvnw.cmd test` (Postgres `api-postgres-1` up): `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0` → `BUILD SUCCESS`.
+- Frontend `npm run build`: `✓ Compiled successfully`, `Finished TypeScript` with no errors, all 10 routes generated.
+- `eslint .`: exit 0, no output (clean).
+- Security audit (read the changed source directly, not the prior write-up):
+  - Ownership enforced via `findByIdAndUser` in `CostSplitService`, `GameDayService`, `PlayerProfileService`; each resolves the authenticated principal before any read/write — no cross-user access. PASS.
+  - Cost-split index validated (`null` / `<0` / `>= size` → `IllegalArgumentException` "Invalid player selection…", mapped to 409) — no `IndexOutOfBounds` 500, no stack trace leak. PASS.
+  - Input validation intact (`@NotBlank name`, `@NotNull gameDayId`, `@NotEmpty payingPlayerIndexes`). PASS.
+  - Data minimization: player email (PII) removed from collection and storage — net security-positive (checklist 7.3). PASS.
+- Secrets scan (`git grep` on tracked source): the only secret literals are the **throwaway** `jwt.secret` and test DB password in `api/src/test/resources/application.properties` (commented "no real secrets"); main `application.properties` uses `${JWT_SECRET}` and `${DB_PASSWORD:}`; no `.env` file is tracked (`git ls-files`), and `.gitignore` covers `.env` / `.env.*`. Test-config value accepted, not a real credential. PASS.
+
+**Conclusion:** all documented results above are confirmed by real execution — no must-fix issues; no code changes required.
+
 ### Next Steps
 
 - Run the migration SQL against local Postgres (Docker) and Neon before deploy
