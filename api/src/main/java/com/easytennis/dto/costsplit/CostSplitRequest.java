@@ -7,6 +7,6 @@ import java.util.List;
 
 public record CostSplitRequest(
         @NotNull Long gameDayId,
-        @NotEmpty List<String> payingPlayerEmails
+        @NotEmpty List<Integer> payingPlayerIndexes
 ) {
 }

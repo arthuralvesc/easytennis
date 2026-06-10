@@ -27,14 +27,12 @@ export default function PlayersPage() {
   // New player dialog
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
-  const [newEmail, setNewEmail] = useState("")
   const [newSaving, setNewSaving] = useState(false)
   const [newError, setNewError] = useState<string | null>(null)
 
   // Edit dialog
   const [editPlayer, setEditPlayer] = useState<PlayerProfileResponse | null>(null)
   const [editName, setEditName] = useState("")
-  const [editEmail, setEditEmail] = useState("")
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
@@ -64,13 +62,12 @@ export default function PlayersPage() {
     setNewSaving(true)
     setNewError(null)
     try {
-      const created = await api.players.create({ name: newName, email: newEmail })
+      const created = await api.players.create({ name: newName })
       setPlayers((prev) =>
         [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
       )
       setShowNew(false)
       setNewName("")
-      setNewEmail("")
     } catch (e: unknown) {
       setNewError(e instanceof Error ? e.message : "Failed to create player")
     } finally {
@@ -81,7 +78,6 @@ export default function PlayersPage() {
   function openEdit(player: PlayerProfileResponse) {
     setEditPlayer(player)
     setEditName(player.name)
-    setEditEmail(player.email)
     setEditError(null)
   }
 
@@ -92,7 +88,6 @@ export default function PlayersPage() {
     try {
       const updated = await api.players.update(editPlayer.id, {
         name: editName,
-        email: editEmail,
       })
       setPlayers((prev) =>
         prev
@@ -143,7 +138,7 @@ export default function PlayersPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="sm:max-w-xs"
         />
-        <Button size="sm" onClick={() => { setNewError(null); setNewName(""); setNewEmail(""); setShowNew(true) }}>
+        <Button size="sm" onClick={() => { setNewError(null); setNewName(""); setShowNew(true) }}>
           <UserPlus className="mr-1 h-4 w-4" />
           New Player
         </Button>
@@ -165,7 +160,6 @@ export default function PlayersPage() {
             >
               <div>
                 <p className="font-medium">{player.name}</p>
-                <p className="text-sm text-muted-foreground">{player.email}</p>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -207,16 +201,6 @@ export default function PlayersPage() {
                 placeholder="Player name"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="new-email">Email</Label>
-              <Input
-                id="new-email"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="player@example.com"
-              />
-            </div>
             {newError && <p className="text-sm text-destructive">{newError}</p>}
           </div>
           <DialogFooter>
@@ -225,7 +209,7 @@ export default function PlayersPage() {
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={newSaving || !newName.trim() || !newEmail.trim()}
+              disabled={newSaving || !newName.trim()}
             >
               {newSaving && <Spinner className="mr-2" />}
               Save
@@ -251,16 +235,6 @@ export default function PlayersPage() {
                 placeholder="Player name"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-                placeholder="player@example.com"
-              />
-            </div>
             {editError && <p className="text-sm text-destructive">{editError}</p>}
           </div>
           <DialogFooter>
@@ -269,7 +243,7 @@ export default function PlayersPage() {
             </Button>
             <Button
               onClick={handleEdit}
-              disabled={editSaving || !editName.trim() || !editEmail.trim()}
+              disabled={editSaving || !editName.trim()}
             >
               {editSaving && <Spinner className="mr-2" />}
               Save

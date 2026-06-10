@@ -243,3 +243,134 @@ Approach: New PlayerProfile JPA entity (player_profiles table, per-user, ddl-aut
 
 - Commit and push `feature/loading-spinners` branch
 - Open draft PR to `master`
+
+---
+
+## [2026-06-10] refactor(players): remove email from player roster + game-day snapshot
+
+### Log
+
+```
+[LOG - 2026-06-10T00:00:00Z]
+Change: Remove the `email` property from the player concept — both the roster
+PlayerProfile entity and the embedded Player snapshot stored on game days. Email
+is no longer collected when creating a player or assigning one to a game day.
+Reason: Casual players don't have/need an email on file; forcing one added
+friction. Email was never used for notifications — only as an identity key.
+Approach: Replace email-as-identity with (a) a nullable `profileId` on the
+embedded Player linking back to the roster entry, used for pick-list
+pre-selection and orphan detection, and (b) player **index** within the game
+day's player list for cost-split selection (works uniformly for roster-linked,
+orphan, and duplicate-named players, which a nullable profileId cannot).
+```
+
+### Key Decisions
+
+| Decision | Rationale |
+|---|---|
+| Embedded `Player` gains nullable `Long profileId` (replaces `email`) | Links a game-day snapshot back to its roster `PlayerProfile` for pre-selection/orphan detection. Null = ad-hoc/legacy player with no roster entry. |
+| Cost-split matches by **player index**, not profileId | Orphan/ad-hoc players have `null` profileId and two of them can't be distinguished; index identifies any player in the snapshot unambiguously. `CostSplitRequest.payingPlayerEmails` → `payingPlayerIndexes: List<Integer>`. |
+| `PlayerSplitDto` carries `playerIndex` (drops `email`) | Lets the frontend map returned amounts back to the rendered player rows by index. |
+| Roster de-duplication removed | Email was the uniqueness key; with duplicate names now allowed (each roster entry is distinct by id), `existsByUserAndEmail` and the `@UniqueConstraint(user_id, email)` are dropped. No 409 on create/update. |
+| Drop SQL for existing columns | `ddl-auto=update` auto-adds `game_day_players.profile_id` but never drops the NOT NULL `email` columns → inserts would fail. Manual migration drops them. Existing rows get `profile_id = NULL` → preserved as orphans. |
+| User account email untouched | `User.email` is the auth principal — entirely separate from the player concept; all auth flows unchanged. |
+
+### Changes Applied
+
+**Backend (`api/src/main/java/com/easytennis/`):**
+
+| File | Change |
+|---|---|
+| `entity/Player.java` | `email` → nullable `Long profileId` |
+| `entity/PlayerProfile.java` | Removed `email` field + `@UniqueConstraint(user_id, email)` |
+| `repository/PlayerProfileRepository.java` | Removed `existsByUserAndEmail` |
+| `dto/player/PlayerProfileRequest.java` / `PlayerProfileResponse.java` | Dropped `email` |
+| `dto/gameday/PlayerDto.java` | `email` → `Long profileId` |
+| `dto/costsplit/CostSplitRequest.java` | `payingPlayerEmails` → `payingPlayerIndexes: List<Integer>` |
+| `dto/costsplit/PlayerSplitDto.java` | `email` → `int playerIndex` |
+| `service/PlayerProfileService.java` | Removed duplicate-email checks; create/update set name only |
+| `service/GameDayService.java` | Map `profileId` instead of `email` both directions |
+| `service/CostSplitService.java` | Index-based selection + range validation; removed `Set<String>` email filter |
+
+**Frontend (`frontend/app/`):**
+
+| File | Change |
+|---|---|
+| `lib/api.ts` | Updated `PlayerDto`, `PlayerSplitDto`, `PlayerProfile*`, `costSplit.calculate` signatures |
+| `(protected)/players/page.tsx` | Removed all email state, inputs, and display; name-only create/edit |
+| `components/GameDayForm.tsx` | `selectedEmails` → `selectedProfileIds`; Add-player dialog name-only; orphans keyed by `profileId` |
+| `(protected)/gamedays/[id]/edit/page.tsx` | Compute `initialSelectedProfileIds` + orphans by `profileId` |
+| `(protected)/cost-split/page.tsx` | `checkedEmails` → `checkedIndexes`; amounts mapped by `playerIndex` |
+
+### Database Migration (run on local + Neon)
+
+```sql
+ALTER TABLE player_profiles  DROP COLUMN IF EXISTS email CASCADE;
+ALTER TABLE game_day_players DROP COLUMN IF EXISTS email;
+```
+
+### Build / Test Result
+
+- Backend `mvnw.cmd compile`: ✅ clean
+- Frontend `npm run build`: ✅ compiled, TypeScript clean
+- `eslint .`: ✅ no warnings or errors
+- Backend `mvnw.cmd test`: ✅ 12/12 green (after fixing two **pre-existing** issues
+  surfaced during verification, both unrelated to the player change):
+  - `AuthServicePasswordResetTest.sendResetCode_throwsWhenEmailNotFound` was stale —
+    `AuthService.sendResetCode` had been changed to silently no-op on an unknown email
+    (the user-enumeration security fix), but the test still asserted a throw. Renamed to
+    `sendResetCode_silentlyNoOpsWhenEmailNotFound` and updated to assert no-throw + no email sent.
+  - `ApiApplicationTests.contextLoads` couldn't load the context: `src/test/resources/
+    application.properties` shadows the main file but didn't define the custom `@Value`
+    placeholders (`jwt.secret`, `jwt.expiration.ms`, `cors.allowed.origins`) or a mail host.
+    Added throwaway test values so the context loads against the local Postgres.
+
+### Post-Change Review (executed — backend steps 2/4/7, frontend step 3)
+
+**Purpose / outcome Q&A:**
+- *What was the purpose?* Remove `email` from the player concept (roster + game-day snapshot).
+- *Was it fulfilled?* Yes — email is gone from entities, DTOs, services, and all UI; identity is now `profileId` (linkage/orphan detection) + player index (cost-split).
+- *Expected vs. achieved result?* Players can be created/assigned without email; cost-split still computes `total / payers`; existing game-day rows are preserved as `profile_id = NULL` orphans. Achieved — 12/12 tests, clean build/lint.
+- *Convention alignment?* Yes — 3-layer architecture, DTOs separate from entities, SOLID, constructor injection, no new dependencies, env-var config all preserved.
+
+**Edge cases / code-smell review:** out-of-range / duplicate cost-split indexes handled (`distinct()` + range guard → 409, no `IndexOutOfBounds` 500); empty selection blocked by `@NotEmpty`; no God classes or long methods introduced; removed the now-unused `Set` import in `CostSplitService`.
+
+### Security Review (executed — backend step 6, frontend step 4; against `docs/SECURITY-REVIEW.md`)
+
+| Category | Finding |
+|---|---|
+| 1 Auth/Authz | No change. `CostSplitService` / `GameDayService` / `PlayerProfileService` still enforce ownership via `findByIdAndUser`; cost-split resolves the authenticated user before reading any game day. PASS |
+| 2 Input validation | `@NotBlank name`, `@NotNull gameDayId`, `@NotEmpty payingPlayerIndexes`; index range validated server-side. PASS |
+| 6 Error handling | Invalid index → `IllegalArgumentException("Invalid player selection…")` (generic, 409), no stack trace. PASS |
+| 7 Data protection | **Net positive** — removes player email (PII) from collection and storage (data minimization, 7.3). PASS |
+| 4 Secrets | `src/test/resources/application.properties` contains a **throwaway** `jwt.secret` + the pre-existing dev DB password. Test-only, clearly commented, distinct from prod (`${JWT_SECRET}` env var). Accepted as standard test-config, not a real credential. |
+
+**Accepted (no code change):** `PlayerDto.profileId` is client-supplied and not validated against the caller's roster on save. It is an **opaque display-only hint** — never used server-side for authorization or to read another user's data (a foreign/stale id simply renders as an orphan on edit). No cross-user exposure; server-side roster validation deferred as unnecessary hardening.
+
+**Result:** no must-fix vulnerabilities; the change reduces PII surface. No code changes required from the review.
+
+### Verification (re-run with real output after completing all protocol steps)
+
+- Backend `mvnw.cmd test`: ✅ 12/12 green
+- Frontend `npm run build`: ✅ TypeScript clean
+- `eslint .`: ✅ no warnings or errors
+
+### Re-verification [2026-06-10] — every protocol step re-executed with captured output (no assumptions)
+
+- Backend `mvnw.cmd test` (Postgres `api-postgres-1` up): `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0` → `BUILD SUCCESS`.
+- Frontend `npm run build`: `✓ Compiled successfully`, `Finished TypeScript` with no errors, all 10 routes generated.
+- `eslint .`: exit 0, no output (clean).
+- Security audit (read the changed source directly, not the prior write-up):
+  - Ownership enforced via `findByIdAndUser` in `CostSplitService`, `GameDayService`, `PlayerProfileService`; each resolves the authenticated principal before any read/write — no cross-user access. PASS.
+  - Cost-split index validated (`null` / `<0` / `>= size` → `IllegalArgumentException` "Invalid player selection…", mapped to 409) — no `IndexOutOfBounds` 500, no stack trace leak. PASS.
+  - Input validation intact (`@NotBlank name`, `@NotNull gameDayId`, `@NotEmpty payingPlayerIndexes`). PASS.
+  - Data minimization: player email (PII) removed from collection and storage — net security-positive (checklist 7.3). PASS.
+- Secrets scan (`git grep` on tracked source): the only secret literals are the **throwaway** `jwt.secret` and test DB password in `api/src/test/resources/application.properties` (commented "no real secrets"); main `application.properties` uses `${JWT_SECRET}` and `${DB_PASSWORD:}`; no `.env` file is tracked (`git ls-files`), and `.gitignore` covers `.env` / `.env.*`. Test-config value accepted, not a real credential. PASS.
+
+**Conclusion:** all documented results above are confirmed by real execution — no must-fix issues; no code changes required.
+
+### Next Steps
+
+- Run the migration SQL against local Postgres (Docker) and Neon before deploy
+- Manual end-to-end verification of players / game day / cost-split flows
+- Open PR to `master`

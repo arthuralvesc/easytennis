@@ -16,5 +16,8 @@ import lombok.Setter;
 public class Player {
 
     private String name;
-    private String email;
+
+    // Nullable link back to the roster PlayerProfile this snapshot was created from.
+    // Null for ad-hoc/legacy players that have no roster entry (orphans).
+    private Long profileId;
 }
