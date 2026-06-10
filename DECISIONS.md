@@ -325,6 +325,36 @@ ALTER TABLE game_day_players DROP COLUMN IF EXISTS email;
     placeholders (`jwt.secret`, `jwt.expiration.ms`, `cors.allowed.origins`) or a mail host.
     Added throwaway test values so the context loads against the local Postgres.
 
+### Post-Change Review (executed — backend steps 2/4/7, frontend step 3)
+
+**Purpose / outcome Q&A:**
+- *What was the purpose?* Remove `email` from the player concept (roster + game-day snapshot).
+- *Was it fulfilled?* Yes — email is gone from entities, DTOs, services, and all UI; identity is now `profileId` (linkage/orphan detection) + player index (cost-split).
+- *Expected vs. achieved result?* Players can be created/assigned without email; cost-split still computes `total / payers`; existing game-day rows are preserved as `profile_id = NULL` orphans. Achieved — 12/12 tests, clean build/lint.
+- *Convention alignment?* Yes — 3-layer architecture, DTOs separate from entities, SOLID, constructor injection, no new dependencies, env-var config all preserved.
+
+**Edge cases / code-smell review:** out-of-range / duplicate cost-split indexes handled (`distinct()` + range guard → 409, no `IndexOutOfBounds` 500); empty selection blocked by `@NotEmpty`; no God classes or long methods introduced; removed the now-unused `Set` import in `CostSplitService`.
+
+### Security Review (executed — backend step 6, frontend step 4; against `docs/SECURITY-REVIEW.md`)
+
+| Category | Finding |
+|---|---|
+| 1 Auth/Authz | No change. `CostSplitService` / `GameDayService` / `PlayerProfileService` still enforce ownership via `findByIdAndUser`; cost-split resolves the authenticated user before reading any game day. PASS |
+| 2 Input validation | `@NotBlank name`, `@NotNull gameDayId`, `@NotEmpty payingPlayerIndexes`; index range validated server-side. PASS |
+| 6 Error handling | Invalid index → `IllegalArgumentException("Invalid player selection…")` (generic, 409), no stack trace. PASS |
+| 7 Data protection | **Net positive** — removes player email (PII) from collection and storage (data minimization, 7.3). PASS |
+| 4 Secrets | `src/test/resources/application.properties` contains a **throwaway** `jwt.secret` + the pre-existing dev DB password. Test-only, clearly commented, distinct from prod (`${JWT_SECRET}` env var). Accepted as standard test-config, not a real credential. |
+
+**Accepted (no code change):** `PlayerDto.profileId` is client-supplied and not validated against the caller's roster on save. It is an **opaque display-only hint** — never used server-side for authorization or to read another user's data (a foreign/stale id simply renders as an orphan on edit). No cross-user exposure; server-side roster validation deferred as unnecessary hardening.
+
+**Result:** no must-fix vulnerabilities; the change reduces PII surface. No code changes required from the review.
+
+### Verification (re-run with real output after completing all protocol steps)
+
+- Backend `mvnw.cmd test`: ✅ 12/12 green
+- Frontend `npm run build`: ✅ TypeScript clean
+- `eslint .`: ✅ no warnings or errors
+
 ### Next Steps
 
 - Run the migration SQL against local Postgres (Docker) and Neon before deploy

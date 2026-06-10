@@ -102,6 +102,21 @@ EasyTennis tracks tennis game days in court rental arenas. Users register game d
 
 ## Development Protocol (MANDATORY)
 
+> ### ⛔ ABSOLUTE RULE — NEVER declare a task finished without completing EVERY step
+>
+> You may **NEVER**, and I repeat **NEVER**, assume, claim, report, or imply that a
+> task is "done", "complete", "ready", or "passing" until you have **actually run
+> every single step** of the After-every-change checklist below **and confirmed each
+> one succeeded with real output** — not predicted, not assumed, not skipped.
+>
+> - Run each step. Do not reason about whether it would pass — execute it and read the result.
+> - If a step cannot be run, is skipped, or fails, you MUST say so explicitly and stop —
+>   never paper over it or describe the task as complete.
+> - "Compiles" / "builds" is NOT "done". The task is done only when **all 8 steps below
+>   plus the DECISIONS.md write-up have each been executed and verified to succeed.**
+> - When you report status, map every step to a concrete result (pass/fail/skipped-with-reason).
+>   A green claim without evidence is a protocol violation.
+
 **Before every change**
 
 1. ALWAYS read the DECISIONS.md file at the root folder before starting any changes. If there are risks or unresolved dependencies related to other decisions, prompt the user for guidance.
@@ -130,6 +145,8 @@ Write a summary of our progress, key decisions made, and next steps into a file 
 
 **Definition of Done**
 A pull request can ONLY be submitted after EVERY step of the Development Protocol has been completed, the backend and frontend run sucessfully without any errors, any problems and risks have been resolved, and every detail of the change has been documented in the DECISIONS.md file.
+
+**This is non-negotiable: a task is NOT finished — and must never be described as finished — until every one of the 8 After-every-change steps above has been actually executed and verified to succeed, and the DECISIONS.md entry is written. If any step was not run or did not pass, the task is unfinished by definition; say so plainly instead of reporting completion.**
 
 ---
 
