@@ -141,3 +141,105 @@ Approach: SecureRandom 6-digit OTP stored in password_reset_codes table (15-min 
 
 - Commit and push `feature/loading-spinners` branch (includes this change)
 - Open draft PR to `master`
+
+---
+
+## [2026-06-05] feat(ui): home page with feature cards
+
+### Log
+
+```
+[LOG - 2026-06-05T00:00:00Z]
+Change: Add /home page as the first page after login, with square cards for Game Days, Cost Split, and Logout; add Back buttons on Game Days and Cost Split pages
+Reason: Users previously landed on the Game Days list with no central navigation hub; the new home page provides a clear entry point and consistent way to reach all main features
+Approach: New page.tsx at app/(protected)/home/; three shadcn Card components in a responsive 3-column grid; Logout card reuses the same Dialog confirmation pattern as the Header; root redirect and post-login redirect updated to /home; Back button added as ghost Button with ChevronLeft icon
+```
+
+### Key Decisions
+
+| Decision | Rationale |
+|---|---|
+| Reuse existing `Card` shadcn component with `aspect-square` | No new primitives needed; `aspect-square` enforces square shape regardless of content size |
+| Default `rounded-lg` on Card — no override needed | `rounded-lg` (10px) already gives the rounded-corner look requested; a custom override would be inconsistent with other cards |
+| Logout card opens the same Dialog already used in the Header | Consistent UX; user already knows the confirmation flow |
+| Back button uses `variant="ghost" size="sm"` + `ChevronLeft` | Matches the ghost navigation buttons already in the Header; unobtrusive and visually consistent |
+| `sm:grid-cols-3` responsive grid | On small screens each card stacks vertically; on sm+ they sit side-by-side as a 3-col row |
+
+### Changes Applied
+
+| File | Change |
+|---|---|
+| `app/(protected)/home/page.tsx` | Created — 3-card grid page with logout dialog |
+| `app/page.tsx` | Root redirect changed from `/gamedays` to `/home` |
+| `app/(auth)/login/page.tsx` | Post-login `router.push` changed from `/gamedays` to `/home` |
+| `app/(protected)/gamedays/page.tsx` | Added `ChevronLeft` import + Back button linking to `/home` |
+| `app/(protected)/cost-split/page.tsx` | Added `useRouter`, `ChevronLeft` imports + Back button linking to `/home` |
+
+### Build & Lint Result
+
+- `npm run build`: ✅ Compiled successfully — `/home` route listed
+- `eslint .`: ✅ No warnings or errors
+
+### Next Steps
+
+- Commit and push `feature/loading-spinners` branch
+- Open PR to `master`
+
+---
+
+## [2026-06-05] feat(players): manage players page + game day pick-list
+
+### Log
+
+```
+[LOG - 2026-06-05T20:00:00Z]
+Change: Add PlayerProfile entity + /players management page + replace inline player fields in game day form with a pick-list
+Reason: Users need a reusable roster of frequent players rather than re-entering names/emails every game day
+Approach: New PlayerProfile JPA entity (player_profiles table, per-user, ddl-auto creates it); CRUD REST controller at /players/**; new /players frontend page with search/create/edit/delete; GameDayForm refactored to a checkbox pick-list; home page gets a 4th "Manage Players" card
+```
+
+### Key Decisions
+
+| Decision | Rationale |
+|---|---|
+| `PlayerProfile` as a new `@Entity` (not promoting `Player` embeddable) | `Player` is `@Embeddable` stored in `game_day_players`; promoting it would require a schema migration. A new `player_profiles` table keeps the existing data model intact |
+| `@UniqueConstraint(columnNames = {"user_id", "email"})` | Players are per-user; the same email may appear in another user's list |
+| `IllegalArgumentException` → 409 on duplicate email | Reuses the existing `GlobalExceptionHandler.handleIllegalArgument` mapping — no handler change needed |
+| No `SecurityConfig` change | `anyRequest().authenticated()` already covers `/players/**` |
+| `orphanPlayers` prop in `GameDayForm` | Players that pre-date the feature (or were removed from the managed list) must still be preserved in an edited game day; they appear as pre-checked, disabled rows with an "— not in list" label |
+| `Promise.all` for edit page parallel fetch | Avoids sequential latency when loading both the game day and the player list |
+| Client-side search with `useMemo` | Player lists are small (per-user); no server round-trip needed for filtering |
+
+### Changes Applied
+
+**Backend (already committed in prior session):**
+
+| File | Change |
+|---|---|
+| `api/.../entity/PlayerProfile.java` | New `@Entity` — id, name, email, user (FK) |
+| `api/.../repository/PlayerProfileRepository.java` | New repo — findAllByUserOrderByNameAsc, findByIdAndUser, existsByUserAndEmail |
+| `api/.../dto/player/PlayerProfileRequest.java` | New record — @NotBlank name, @NotBlank @Email email |
+| `api/.../dto/player/PlayerProfileResponse.java` | New record — Long id, String name, String email |
+| `api/.../service/PlayerProfileService.java` | CRUD service — list, create (409 on dup), update (email-change check), delete |
+| `api/.../controller/PlayerProfileController.java` | GET /players, POST /players, PUT /players/{id}, DELETE /players/{id} |
+
+**Frontend:**
+
+| File | Change |
+|---|---|
+| `frontend/app/lib/api.ts` | Added `PlayerProfileResponse`, `PlayerProfileRequest` types; added `api.players` namespace |
+| `frontend/app/(protected)/players/page.tsx` | Created — list with search, create/edit/delete dialogs, Back → /home |
+| `frontend/app/components/GameDayForm.tsx` | Removed `players` zod field + useFieldArray; added checkbox pick-list, orphan players, "New Player" dialog |
+| `frontend/app/(protected)/gamedays/new/page.tsx` | Fetches player list, passes `availablePlayers` to GameDayForm |
+| `frontend/app/(protected)/gamedays/[id]/edit/page.tsx` | Parallel-fetches game day + players; computes initialSelectedEmails + orphanPlayers |
+| `frontend/app/(protected)/home/page.tsx` | Added "Manage Players" card (4th); grid changed to `grid-cols-2 sm:grid-cols-4` |
+
+### Build & Lint Result
+
+- `npm run build`: ✅ Compiled successfully — `/players` route listed
+- `eslint .`: ✅ No warnings or errors
+
+### Next Steps
+
+- Commit and push `feature/loading-spinners` branch
+- Open draft PR to `master`

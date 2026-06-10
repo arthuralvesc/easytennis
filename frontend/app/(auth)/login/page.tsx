@@ -75,7 +75,7 @@ export default function LoginPage() {
     try {
       const res = await api.auth.login(values)
       login(res.token)
-      router.push("/gamedays")
+      router.push("/home")
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Login failed")
     }

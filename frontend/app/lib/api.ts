@@ -73,6 +73,17 @@ export interface CostSplitResponse {
   playerAmounts: PlayerSplitDto[]
 }
 
+export interface PlayerProfileResponse {
+  id: number
+  name: string
+  email: string
+}
+
+export interface PlayerProfileRequest {
+  name: string
+  email: string
+}
+
 export const api = {
   auth: {
     login: (data: LoginRequest) =>
@@ -101,5 +112,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ gameDayId, payingPlayerEmails }),
       }),
+  },
+  players: {
+    list: () => request<PlayerProfileResponse[]>("/players"),
+    create: (data: PlayerProfileRequest) =>
+      request<PlayerProfileResponse>("/players", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: PlayerProfileRequest) =>
+      request<PlayerProfileResponse>(`/players/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: number) => request<void>(`/players/${id}`, { method: "DELETE" }),
   },
 }

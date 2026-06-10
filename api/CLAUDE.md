@@ -121,7 +121,7 @@ Approach: <how it will be implemented>
 3. Lint the code (Checkstyle / SpotBugs if configured)
 4. Check for code smells: God classes, long methods, feature envy, magic numbers
 5. Verify no secrets or environment variables are hardcoded — all must live in `.env` files
-6. Scan the new code for any possible security breaches
+4. Review the codebase for security issues. (use the SECURITY-REVIEWER.md skill)
 7. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
 8. Verify no API URLs, tokens, secrets, or docker compose variables are hardcoded — use `.env` files
 

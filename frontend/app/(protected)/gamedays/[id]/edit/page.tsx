@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { api, GameDayRequest, GameDayResponse } from "@/app/lib/api"
+import { api, GameDayRequest, GameDayResponse, PlayerProfileResponse } from "@/app/lib/api"
 import GameDayForm, { GameDayFormValues } from "@/app/components/GameDayForm"
 import { PageSpinner } from "@/app/components/Spinner"
 
@@ -11,15 +11,18 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
   const numericId = Number(id)
   const router = useRouter()
   const [gameDay, setGameDay] = useState<GameDayResponse | null>(null)
+  const [availablePlayers, setAvailablePlayers] = useState<PlayerProfileResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    api.gameDays
-      .getById(numericId)
-      .then(setGameDay)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load game day"))
+    Promise.all([api.gameDays.getById(numericId), api.players.list()])
+      .then(([gd, players]) => {
+        setGameDay(gd)
+        setAvailablePlayers(players)
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false))
   }, [numericId])
 
@@ -43,12 +46,16 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
   if (error) return <p className="text-destructive">{error}</p>
   if (!gameDay) return null
 
+  const initialSelectedEmails = gameDay.players.map((p) => p.email)
+  const orphanPlayers = gameDay.players.filter(
+    (p) => !availablePlayers.some((ap) => ap.email === p.email)
+  )
+
   const defaultValues: Partial<GameDayFormValues> = {
     date: gameDay.date,
     numberOfCourts: gameDay.numberOfCourts,
     numberOfHours: gameDay.numberOfHours,
     totalPrice: gameDay.totalPrice,
-    players: gameDay.players,
   }
 
   return (
@@ -56,6 +63,9 @@ export default function EditGameDayPage({ params }: { params: Promise<{ id: stri
       <h1 className="text-2xl font-semibold mb-6">Edit Game Day</h1>
       <GameDayForm
         defaultValues={defaultValues}
+        availablePlayers={availablePlayers}
+        initialSelectedEmails={initialSelectedEmails}
+        orphanPlayers={orphanPlayers}
         submitLabel="Save Changes"
         onSubmit={handleUpdate}
         onDelete={handleDelete}

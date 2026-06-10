@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { api, GameDayResponse, CostSplitResponse } from "@/app/lib/api"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,8 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PageSpinner, Spinner } from "@/app/components/Spinner"
+import { ChevronLeft } from "lucide-react"
 
 export default function CostSplitPage() {
+  const router = useRouter()
   const [gameDays, setGameDays] = useState<GameDayResponse[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [checkedEmails, setCheckedEmails] = useState<Set<string>>(new Set())
@@ -73,7 +76,13 @@ export default function CostSplitPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Cost Split</h1>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={() => router.push("/home")}>
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Back
+        </Button>
+        <h1 className="text-2xl font-semibold">Cost Split</h1>
+      </div>
 
       <div className="space-y-2">
         <Label>Select Game Day</Label>

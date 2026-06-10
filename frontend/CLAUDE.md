@@ -163,7 +163,7 @@ Approach: <how it will be implemented>
 1. Run `npm run build` — catches TypeScript errors
 2. Run `eslint .` — lint
 3. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
-4. Scan the new code for any possible security breaches
+4. Review the codebase for security issues. (use the SECURITY-REVIEWER.md skill)
 5. Verify no API URLs, tokens, or secrets are hardcoded — use `.env` files
 
 ---

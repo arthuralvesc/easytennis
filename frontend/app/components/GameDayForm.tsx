@@ -1,32 +1,39 @@
 "use client"
 
-import { Controller, Resolver, useFieldArray, useForm } from "react-hook-form"
+import { useState } from "react"
+import { Controller, Resolver, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { GameDayRequest } from "@/app/lib/api"
+import { api, GameDayRequest, PlayerProfileResponse } from "@/app/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Trash2, UserPlus } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { UserPlus } from "lucide-react"
 import { Spinner } from "@/app/components/Spinner"
-
-const playerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email"),
-})
 
 const gameDaySchema = z.object({
   date: z.string().min(1, "Date is required"),
   numberOfCourts: z.coerce.number().int().positive("Must be a positive number"),
   numberOfHours: z.coerce.number().int().positive("Must be a positive number"),
   totalPrice: z.coerce.number().positive("Must be a positive number"),
-  players: z.array(playerSchema).min(1, "Add at least one player"),
 })
 
 export type GameDayFormValues = z.infer<typeof gameDaySchema>
 
 interface GameDayFormProps {
   defaultValues?: Partial<GameDayFormValues>
+  availablePlayers: PlayerProfileResponse[]
+  initialSelectedEmails?: string[]
+  orphanPlayers?: Array<{ name: string; email: string }>
   onSubmit: (data: GameDayRequest) => Promise<void>
   submitLabel: string
   isDeleting?: boolean
@@ -35,6 +42,9 @@ interface GameDayFormProps {
 
 export default function GameDayForm({
   defaultValues,
+  availablePlayers: initialAvailablePlayers,
+  initialSelectedEmails = [],
+  orphanPlayers = [],
   onSubmit,
   submitLabel,
   isDeleting,
@@ -47,23 +57,68 @@ export default function GameDayForm({
       numberOfCourts: 1,
       numberOfHours: 1,
       totalPrice: 0,
-      players: [{ name: "", email: "" }],
       ...defaultValues,
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "players",
-  })
+  const [availablePlayers, setAvailablePlayers] = useState<PlayerProfileResponse[]>(initialAvailablePlayers)
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(
+    new Set(initialSelectedEmails)
+  )
+  const [playersError, setPlayersError] = useState<string | null>(null)
+
+  // Add New Player dialog
+  const [showAdd, setShowAdd] = useState(false)
+  const [addName, setAddName] = useState("")
+  const [addEmail, setAddEmail] = useState("")
+  const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+
+  function toggleEmail(email: string) {
+    setSelectedEmails((prev) => {
+      const next = new Set(prev)
+      if (next.has(email)) next.delete(email)
+      else next.add(email)
+      return next
+    })
+  }
+
+  async function handleAddPlayer() {
+    setAddSaving(true)
+    setAddError(null)
+    try {
+      const created = await api.players.create({ name: addName, email: addEmail })
+      setAvailablePlayers((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
+      )
+      setSelectedEmails((prev) => new Set([...prev, created.email]))
+      setShowAdd(false)
+      setAddName("")
+      setAddEmail("")
+    } catch (e: unknown) {
+      setAddError(e instanceof Error ? e.message : "Failed to create player")
+    } finally {
+      setAddSaving(false)
+    }
+  }
 
   async function handleSubmit(values: GameDayFormValues) {
+    const managedSelected = availablePlayers.filter((p) => selectedEmails.has(p.email))
+    const allPlayers = [
+      ...managedSelected.map((p) => ({ name: p.name, email: p.email })),
+      ...orphanPlayers,
+    ]
+    if (allPlayers.length === 0) {
+      setPlayersError("Select at least one player")
+      return
+    }
+    setPlayersError(null)
     await onSubmit({
       date: values.date,
       numberOfCourts: values.numberOfCourts,
       numberOfHours: values.numberOfHours,
       totalPrice: values.totalPrice,
-      players: values.players,
+      players: allPlayers,
     })
   }
 
@@ -123,6 +178,7 @@ export default function GameDayForm({
         </div>
       </div>
 
+      {/* Players pick-list */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <Label>Players</Label>
@@ -130,55 +186,56 @@ export default function GameDayForm({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append({ name: "", email: "" })}
+            onClick={() => { setAddError(null); setAddName(""); setAddEmail(""); setShowAdd(true) }}
           >
             <UserPlus className="h-4 w-4 mr-1" />
-            Add Player
+            New Player
           </Button>
         </div>
 
-        {form.formState.errors.players?.root && (
-          <p className="text-xs text-destructive mb-2">{form.formState.errors.players.root.message}</p>
+        {playersError && (
+          <p className="text-xs text-destructive mb-2">{playersError}</p>
         )}
 
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex gap-2 items-start">
-              <div className="flex-1 space-y-1">
-                <Input
-                  placeholder="Name"
-                  {...form.register(`players.${index}.name`)}
-                />
-                {form.formState.errors.players?.[index]?.name && (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.players[index].name?.message}
-                  </p>
-                )}
-              </div>
-              <div className="flex-1 space-y-1">
-                <Input
-                  placeholder="Email"
-                  type="email"
-                  {...form.register(`players.${index}.email`)}
-                />
-                {form.formState.errors.players?.[index]?.email && (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.players[index].email?.message}
-                  </p>
-                )}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="mt-0.5 shrink-0"
-                onClick={() => remove(index)}
-                disabled={fields.length === 1}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+        <div className="max-h-60 overflow-y-auto rounded-md border border-border divide-y divide-border">
+          {availablePlayers.length === 0 && orphanPlayers.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted-foreground">
+              No players in your list yet. Add one with &quot;New Player&quot;.
+            </p>
+          ) : (
+            <>
+              {availablePlayers.map((player) => (
+                <label
+                  key={player.id}
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50"
+                >
+                  <Checkbox
+                    checked={selectedEmails.has(player.email)}
+                    onCheckedChange={() => toggleEmail(player.email)}
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{player.name}</p>
+                    <p className="text-xs text-muted-foreground">{player.email}</p>
+                  </div>
+                </label>
+              ))}
+              {orphanPlayers.map((player) => (
+                <label
+                  key={player.email}
+                  className="flex items-center gap-3 px-4 py-3 opacity-60"
+                >
+                  <Checkbox checked disabled />
+                  <div>
+                    <p className="text-sm font-medium">{player.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {player.email}{" "}
+                      <span className="italic">— not in list</span>
+                    </p>
+                  </div>
+                </label>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -197,6 +254,52 @@ export default function GameDayForm({
           {form.formState.isSubmitting ? <><Spinner className="mr-1" />Saving…</> : submitLabel}
         </Button>
       </div>
+
+      {/* Add New Player Dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Player</DialogTitle>
+            <DialogDescription>
+              Add a player to your list and select them for this game day.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="add-name">Name</Label>
+              <Input
+                id="add-name"
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                placeholder="Player name"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="add-email">Email</Label>
+              <Input
+                id="add-email"
+                type="email"
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                placeholder="player@example.com"
+              />
+            </div>
+            {addError && <p className="text-sm text-destructive">{addError}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={addSaving}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddPlayer}
+              disabled={addSaving || !addName.trim() || !addEmail.trim()}
+            >
+              {addSaving && <Spinner className="mr-2" />}
+              Add &amp; Select
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }

@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus } from "lucide-react"
+import { ChevronLeft, Plus } from "lucide-react"
 import { PageSpinner } from "@/app/components/Spinner"
 
 export default function GameDaysPage() {
@@ -35,7 +35,13 @@ export default function GameDaysPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Game Days</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/home")}>
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-semibold">Game Days</h1>
+        </div>
         <Button onClick={() => router.push("/gamedays/new")} size="sm">
           <Plus className="mr-1 h-4 w-4" />
           New Game Day
