@@ -12,6 +12,8 @@ EasyTennis is a full-stack application built with **Spring Boot 4 (Java 21)** an
 
 > 🔗 **Live demo:** [easytennis-bice.vercel.app](https://easytennis-bice.vercel.app/login) — register an account and try the full flow.
 
+**NOTE:** The backend is hosted on Render, and the free tier shuts the server down after a while. When you try EasyTennis for the first time, you may get an error or have to wait for a minute or two for the server to go live and complete the login.
+
 ---
 
 ## The problem
@@ -192,6 +194,8 @@ This is a portfolio MVP demonstrating full-stack delivery and AI-assisted engine
 EasyTennis é uma aplicação full-stack construída com **Spring Boot 4 (Java 21)** e **Next.js 16 (React 19)**. É também um estudo de **engenharia de software agêntica** — o repositório inclui um conjunto documentado de guardrails em arquivos `CLAUDE.md`, um framework recorrente de auditoria de segurança e um registro de decisões arquiteturais que, juntos, transformam um assistente de programação por IA em um contribuidor disciplinado e revisável.
 
 > 🔗 **Demo ao vivo:** [easytennis-bice.vercel.app](https://easytennis-bice.vercel.app/login) — crie uma conta e experimente o fluxo completo.
+
+**ATENÇÃO** O backend está hospedado no Render, e o plano grátis desliga o servidor após um período. Ao testar EasyTennis pela primeira vez, você poderá encontrar um erro ou ter que aguardar alguns instantes para que o servidor suba.
 
 ---
 
