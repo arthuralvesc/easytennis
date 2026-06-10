@@ -6,6 +6,7 @@ import com.easytennis.dto.auth.VerifyResetCodeRequest;
 import com.easytennis.entity.PasswordResetCode;
 import com.easytennis.entity.User;
 import com.easytennis.repository.PasswordResetCodeRepository;
+import com.easytennis.repository.RefreshTokenRepository;
 import com.easytennis.repository.UserRepository;
 import com.easytennis.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ class AuthServicePasswordResetTest {
 
     @Mock private UserRepository userRepository;
     @Mock private PasswordResetCodeRepository passwordResetCodeRepository;
+    @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtUtil jwtUtil;
@@ -45,6 +47,7 @@ class AuthServicePasswordResetTest {
         authService = new AuthService(
                 userRepository,
                 passwordResetCodeRepository,
+                refreshTokenRepository,
                 passwordEncoder,
                 authenticationManager,
                 jwtUtil,

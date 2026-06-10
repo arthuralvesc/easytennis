@@ -3,6 +3,7 @@ package com.easytennis.controller;
 import com.easytennis.dto.auth.ForgotPasswordRequest;
 import com.easytennis.dto.auth.LoginRequest;
 import com.easytennis.dto.auth.LoginResponse;
+import com.easytennis.dto.auth.RefreshRequest;
 import com.easytennis.dto.auth.RegisterRequest;
 import com.easytennis.dto.auth.ResetPasswordRequest;
 import com.easytennis.dto.auth.VerifyResetCodeRequest;
@@ -32,6 +33,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@RequestBody @Valid RefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody @Valid RefreshRequest request) {
+        authService.logout(request.refreshToken());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/forgot-password")
