@@ -1,6 +1,11 @@
-# CLAUDE.md
+# CLAUDE.md — Backend (`api/`)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides backend-specific guidance to Claude Code (claude.ai/code).
+
+> **Project-wide rules live in the root [`../CLAUDE.md`](../CLAUDE.md):** the
+> application's business rules, the mandatory Development Protocol (including the
+> "never declare a task finished without running every step" rule), and the
+> GitHub workflow. Always follow those in addition to the backend specifics below.
 
 ## Stack
 
@@ -34,12 +39,12 @@ On Windows use `mvnw.cmd` instead of `./mvnw`.
 
 ## Architecture Notes
 
-The project is in its initial scaffold state — only `ApiApplication.java` exists under `com.easytennis`. The expected layered structure is:
+The expected layered structure under `com.easytennis`:
 
 - `controller/` — `@RestController` classes (HTTP layer)
 - `service/` — business logic
 - `repository/` — `@Repository` / Spring Data JPA interfaces
-- `model/` or `entity/` — `@Entity` classes
+- `entity/` — `@Entity` classes
 - `dto/` — request/response DTOs (keep separate from entities)
 - `security/` — Spring Security config (`SecurityFilterChain` bean, JWT filters, etc.)
 
@@ -47,23 +52,11 @@ Spring Security is on the classpath and will deny all requests by default until 
 
 ## Database
 
-`compose.yaml` is currently empty. When a database service is added (e.g., PostgreSQL), Spring Boot will automatically start it via the Docker Compose integration before the app boots — no manual `docker compose up` needed during development.
+PostgreSQL is defined in `compose.yaml`. Spring Boot automatically starts it via
+the Docker Compose integration before the app boots on `./mvnw spring-boot:run` —
+no manual `docker compose up` needed during development.
 
-Datasource properties go in `src/main/resources/application.properties` (or `application.yml`).
-
----
-
-## Application Purpose
-
-EasyTennis tracks tennis game days in court rental arenas. Users register game days with the number of courts rented, hours played, total rental price, and the players who attended. The total cost can be split among any subset of players.
-
----
-
-## Domain Entities
-
-- **GameDay** — date, number of courts, number of hours, total price, list of players
-- **User** — application user (authentication principal); fields: username, email, hashed password
-- **Player** — embedded within GameDay (not a separate DB table); fields: name, email
+Datasource properties go in `src/main/resources/application.properties`.
 
 ---
 
@@ -100,56 +93,6 @@ EasyTennis tracks tennis game days in court rental arenas. Users register game d
 
 ---
 
-## Development Protocol (MANDATORY)
-
-> ### ⛔ ABSOLUTE RULE — NEVER declare a task finished without completing EVERY step
->
-> You may **NEVER**, and I repeat **NEVER**, assume, claim, report, or imply that a
-> task is "done", "complete", "ready", or "passing" until you have **actually run
-> every single step** of the After-every-change checklist below **and confirmed each
-> one succeeded with real output** — not predicted, not assumed, not skipped.
->
-> - Run each step. Do not reason about whether it would pass — execute it and read the result.
-> - If a step cannot be run, is skipped, or fails, you MUST say so explicitly and stop —
->   never paper over it or describe the task as complete.
-> - "Compiles" / "builds" is NOT "done". The task is done only when **all 8 steps below
->   plus the DECISIONS.md write-up have each been executed and verified to succeed.**
-> - When you report status, map every step to a concrete result (pass/fail/skipped-with-reason).
->   A green claim without evidence is a protocol violation.
-
-**Before every change**
-
-1. ALWAYS read the DECISIONS.md file at the root folder before starting any changes. If there are risks or unresolved dependencies related to other decisions, prompt the user for guidance.
-2. divide the change in small tasks
-3. write a log entry in the commit message / PR description:
-
-```
-[LOG - <ISO 8601 timestamp>]
-Change: <what the change is>
-Reason: <why it is needed>
-Approach: <how it will be implemented>
-```
-
-**After every change**:
-1. Run all unit and integration tests (`./mvnw test`)
-2. Review for new risks and uncovered edge cases; document them
-3. Lint the code (Checkstyle / SpotBugs if configured)
-4. Check for code smells: God classes, long methods, feature envy, magic numbers
-5. Verify no secrets or environment variables are hardcoded — all must live in `.env` files
-4. Review the codebase for security issues. (use the SECURITY-REVIEWER.md skill)
-7. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
-8. Verify no API URLs, tokens, secrets, or docker compose variables are hardcoded — use `.env` files
-
-**After the change review**
-Write a summary of our progress, key decisions made, and next steps into a file called DECISIONS.md, with the time stamp of the change.
-
-**Definition of Done**
-A pull request can ONLY be submitted after EVERY step of the Development Protocol has been completed, the backend and frontend run sucessfully without any errors, any problems and risks have been resolved, and every detail of the change has been documented in the DECISIONS.md file.
-
-**This is non-negotiable: a task is NOT finished — and must never be described as finished — until every one of the 8 After-every-change steps above has been actually executed and verified to succeed, and the DECISIONS.md entry is written. If any step was not run or did not pass, the task is unfinished by definition; say so plainly instead of reporting completion.**
-
----
-
 ## Environment Variables
 
 - `.env.development` — local development values (not committed)
@@ -166,27 +109,6 @@ A pull request can ONLY be submitted after EVERY step of the Development Protoco
 - **If any Docker error occurs: NEVER fall back to H2 or any in-memory database. Stop immediately and notify the user that Docker Desktop is not running.**
 
 ---
-
-## GitHub Workflow
-
-- The root `easytennis/` folder is a GitHub repository
-- Every development task must be done on a **new branch** created from `master`
-- Open a **Pull Request to `master`** for every branch — include the pre-change log and post-change review in the PR description
-- Do not merge without passing tests
-
----
-
-## Pull Request Guidelines
-
-  - **Command:** Use `gh pr create --draft` to initiate PRs so they can be reviewed before going live.
-  - **Title Format:** Use Conventional Commits (e.g., `feat(auth): add login flow`).
-  - **Description Template:** Always include:
-    - **Summary:** A brief overview of the changes.
-    - **Testing:** List the specific commands run to verify the fix (e.g., `npm test`).
-    - **Issue Reference:** Link to the relevant issue (e.g., `Closes #123`).
-  - **Review:** Before finalizing, use `gh pr diff` to double-check the changes.
-
-  ---
 
 ## Running Locally
 

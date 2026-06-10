@@ -1,6 +1,11 @@
-# CLAUDE.md
+# CLAUDE.md — Frontend (`frontend/`)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides frontend-specific guidance to Claude Code (claude.ai/code).
+
+> **Project-wide rules live in the root [`../CLAUDE.md`](../CLAUDE.md):** the
+> application's business rules, the mandatory Development Protocol (including the
+> "never declare a task finished without running every step" rule), and the
+> GitHub workflow. Always follow those in addition to the frontend specifics below.
 
 ## Project Structure
 
@@ -73,12 +78,6 @@ When using `cacheComponents: true`, Suspense boundaries must be placed at the pa
 
 ---
 
-## Application Purpose
-
-EasyTennis is a **mobile-first** web application for tracking tennis game days in court rental arenas. Users log game days, track costs, and split the bill among attending players.
-
----
-
 ## UI Framework
 
 **shadcn/ui** — component library built on Radix UI primitives with Tailwind CSS v4.
@@ -94,10 +93,12 @@ EasyTennis is a **mobile-first** web application for tracking tennis game days i
 | Route | Purpose |
 |---|---|
 | `/login` | Login page (unauthenticated) |
+| `/home` | Landing hub after login — cards for Game Days, Cost Split, Manage Players, Logout |
 | `/gamedays` | Game days list — all game days; click a row to go to edit |
 | `/gamedays/new` | Create a new game day |
 | `/gamedays/[id]/edit` | Edit an existing game day |
 | `/cost-split` | Cost split calculator |
+| `/players` | Manage the reusable player roster (create / edit / delete) |
 
 ---
 
@@ -111,7 +112,7 @@ EasyTennis is a **mobile-first** web application for tracking tennis game days i
 
 ## Game Day Form (create & edit pages)
 
-Fields required in the form:
+Fields in the form:
 
 | Field | Type |
 |---|---|
@@ -119,16 +120,14 @@ Fields required in the form:
 | Number of courts | Numeric input |
 | Number of hours played | Numeric input |
 | Total price | Currency input |
-| Players in attendance | Dynamic list — each player has: name (text), email (text) |
-
-Players can be added and removed dynamically within the form.
+| Players in attendance | Checkbox pick-list from the user's roster (name only); a "New Player" dialog adds a roster entry inline. Players removed from the roster but already on the game day appear pre-checked and disabled ("orphans"). |
 
 ---
 
 ## Cost Split Page
 
 1. User selects a game day from a dropdown
-2. A checkbox list of that game day's players is shown
+2. A checkbox list of that game day's players is shown (all checked by default)
 3. User checks which players will pay
 4. Calculated amount per selected player = `total price / number of selected players`
 5. The per-player amount is displayed clearly next to each selected player's name
@@ -138,58 +137,11 @@ Players can be added and removed dynamically within the form.
 ## Authentication
 
 - JWT received from `POST /auth/login` (backend)
-- Store JWT in `localStorage` (or HttpOnly cookie — decide at implementation time)
+- Store JWT in `localStorage`
 - On every page load, check for a valid JWT; if absent or expired, redirect to `/login`
 - Attach JWT to all API requests: `Authorization: Bearer <token>`
 
 ---
-
-## Development Protocol (MANDATORY)
-
-**Before every change**
-
-1. ALWAYS read the DECISIONS.md file at the root folder before starting any changes. If there are risks or unresolved dependencies related to other decisions, prompt the user for guidance.
-2. divide the change in small tasks
-3. write a log entry in the commit message / PR description:
-
-```
-[LOG - <ISO 8601 timestamp>]
-Change: <what the change is>
-Reason: <why it is needed>
-Approach: <how it will be implemented>
-```
-
-> ### ⛔ ABSOLUTE RULE — NEVER declare a task finished without completing EVERY step
->
-> You may **NEVER**, and I repeat **NEVER**, assume, claim, report, or imply that a
-> task is "done", "complete", "ready", or "passing" until you have **actually run
-> every single step** of the After-every-change checklist below **and confirmed each
-> one succeeded with real output** — not predicted, not assumed, not skipped.
->
-> - Run each step. Do not reason about whether it would pass — execute it and read the result.
-> - If a step cannot be run, is skipped, or fails, you MUST say so explicitly and stop —
->   never paper over it or describe the task as complete.
-> - "Compiles" / "builds" is NOT "done". The task is done only when **all 5 steps below
->   plus the DECISIONS.md write-up have each been executed and verified to succeed.**
-> - When you report status, map every step to a concrete result (pass/fail/skipped-with-reason).
->   A green claim without evidence is a protocol violation.
-
-**After every change**:
-1. Run `npm run build` — catches TypeScript errors
-2. Run `eslint .` — lint
-3. Review for new risks and uncovered edge cases, as well as code bad practices that can be fixed; Ask the following questions: What was the purpose of these changes? Was the purpose fulfilled? What was the expected result? Was this result achieved? Do the tools, code and design patterns align with the conventions of the project?  document your review and return it for fixing.
-4. Review the codebase for security issues. (use the SECURITY-REVIEWER.md skill)
-5. Verify no API URLs, tokens, or secrets are hardcoded — use `.env` files
-
----
-
-**After the change review**
-Write a summary of our progress, key decisions made, and next steps into a file called DECISIONS.md, with the time stamp of the change.
-
-**Definition of Done**
-A pull request can ONLY be submitted after EVERY step of the Development Protocol has been completed, the backend and frontend run sucessfully without any errors, any problems and risks have been resolved, and every detail of the change has been documented in the DECISIONS.md file.
-
-**This is non-negotiable: a task is NOT finished — and must never be described as finished — until every one of the 5 After-every-change steps above has been actually executed and verified to succeed, and the DECISIONS.md entry is written. If any step was not run or did not pass, the task is unfinished by definition; say so plainly instead of reporting completion.**
 
 ## Environment Variables
 
@@ -198,14 +150,6 @@ A pull request can ONLY be submitted after EVERY step of the Development Protoco
 - Public vars (exposed to browser) must use the `NEXT_PUBLIC_` prefix
 - Key variable: `NEXT_PUBLIC_API_BASE_URL` — backend API base URL
 - DO NOT hard code values in docker-compose.yaml files. Always use environment variables.
-
----
-
-## GitHub Workflow
-
-- Every development task must be done on a **new branch** created from `master`
-- Open a **Pull Request to `master`** for every branch — include the pre-change log and post-change review in the PR description
-- Do not merge without passing build and lint
 
 ---
 
